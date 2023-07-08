@@ -1,0 +1,81 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+/target/
+/out/
+/build/
+/.gradle/
+/.idea/
+/.settings/
+/.project
+/.classpath
+/maven/
+/logs/
+/.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+/.vscode/
+/.idea/
+/.pytest_cache/
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+*.pid
+*.coverage
+
+# IDE-specific files
+# IntelliJ IDEA
+*.iws
+*.ipr
+*.iml
+/.idea/
+
+# Eclipse
+.metadata/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# PyCharm
+/.idea/
+/.idea_modules/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+.settings/
+*.code-workspace
+
+# NetBeans
+/nbproject/private/
+/build/
+/nbbuild/
+/dist/
+/nbdist/
+/nbdist/
+/.nb-gradle/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
