@@ -59,7 +59,7 @@ public class CommandLineInterface {
     /**
      * The default constructor that initializes the OpenAiService and chat history.
      */
-    public CommandLineInterface() {
+    public CommandLineInterface() throws RuntimeException {
         try {
             // Load properties
             Properties properties = new Properties();
@@ -79,6 +79,7 @@ public class CommandLineInterface {
 
         } catch ( Exception startUpException ) {
             handleException(" couldn't start up the CLI", startUpException );
+            throw new RuntimeException( "Failed to read from the history file. Exiting");
         }
     }
 
@@ -98,11 +99,23 @@ public class CommandLineInterface {
     /**
      * A method to read chat history from a file.
      */
-    void readHistoryFromFile() {
-        try ( ObjectInputStream inputStream = new ObjectInputStream( new FileInputStream( HISTORY_FILE_NAME ) ) ) {
-            history.add( (ChatMessage) inputStream.readObject() );
-        } catch ( ClassNotFoundException | IOException readException ) {
-            handleException( "couldn't read the history file", readException );
+    private void readHistoryFromFile() throws RuntimeException {
+        File historyFile = new File( HISTORY_FILE_NAME );
+        try {
+            if ( !historyFile.exists() ) {
+                historyFile.createNewFile();
+            }
+        } catch ( IOException createException ) {
+            handleException( "couldn't create the history file", createException );
+            throw new RuntimeException( "Failed to create the history file. Exiting");
+        }
+        if ( historyFile.length() != 0 ) {
+            try ( ObjectInputStream inputStream = new ObjectInputStream( new FileInputStream( historyFile ) ) ) {
+                history.add((ChatMessage) inputStream.readObject());
+            } catch ( ClassNotFoundException | IOException readException ) {
+                handleException("couldn't read the history file", readException);
+                throw new RuntimeException("Failed to read from the history file. Exiting");
+            }
         }
     }
 
@@ -120,7 +133,45 @@ public class CommandLineInterface {
             });
         } catch ( IOException writeException ) {
             handleException( "couldn't write the history file", writeException );
+            throw new RuntimeException( "Failed to write the the code file. Exiting");
         }
+    }
+
+    /**
+     * A method to write chat history to a file.
+     */
+    private void clearHistoryToFile() {
+        // Copy original with date.
+        // Create new empty file.
+        try {
+            File historyFile = new File( HISTORY_FILE_NAME );
+            if ( !historyFile.exists() ) {
+                historyFile.createNewFile();
+            }
+        } catch ( IOException createException ) {
+            handleException( "couldn't create the history file", createException );
+            throw new RuntimeException( "Failed to create the history file. Exiting");
+        }
+        try ( ObjectOutputStream outputStream = new ObjectOutputStream( new FileOutputStream( HISTORY_FILE_NAME ) ) ) {
+
+        } catch ( IOException writeException ) {
+            handleException( "couldn't write the history file", writeException );
+            throw new RuntimeException( "Failed to write the the code file. Exiting");
+        }
+    }
+
+    /**
+     * A method to generate data string used in filenames
+     *
+     * @param codeType the type of code
+     * @return a formatted file name
+     */
+    private static String generateDataString( String codeType ) {
+        LocalDateTime currentDateTime = LocalDateTime.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern( CODE_FILE_DATA_FORMAT );
+        String formattedDateTime = currentDateTime.format(formatter);
+
+        return formattedDateTime + ( StringUtils.isEmpty(codeType) ? "" : "." + codeType );
     }
 
     /**
@@ -185,7 +236,7 @@ public class CommandLineInterface {
      *
      * @param message the chat message
      */
-    private void writeCodeToFile( ChatMessage message ) {
+    private void writeCodeToFile( ChatMessage message ) throws RuntimeException {
         String codeType = extractCodeType( message );
         try ( BufferedWriter writer = new BufferedWriter( new FileWriter( generateCodeFileName( codeType ) ) ) ) {
             List<String> codeList = extractCode( message );
@@ -199,6 +250,7 @@ public class CommandLineInterface {
             });
         } catch ( IOException writeCodeException ) {
             handleException( "couldn't write to the code file", writeCodeException );
+            throw new RuntimeException( "Failed to write the the code file. Exiting");
         }
     }
 
@@ -218,6 +270,10 @@ public class CommandLineInterface {
                 writeCodeToFile( lastMessage );
             }
             return false;
+        } else if ( userInput.equalsIgnoreCase("WIPE") ||
+                    userInput.equalsIgnoreCase("WIPEHISTORY") ) {
+            history = new ArrayList<>();
+            clearHistoryToFile();
         }
 
         // Add the last user message to history
@@ -241,9 +297,10 @@ public class CommandLineInterface {
 
     /**
      * A method to start the chat loop.
-     * TODO: decide if a thread could be useful
+     * TODO: decide if a thread could be useful, write now in such a simple project it is not useful.
      */
     protected void run() {
+        readHistoryFromFile();
         // Creating a new thread
         //Thread thread = new Thread(() -> {
             while (true) {
