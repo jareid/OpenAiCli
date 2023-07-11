@@ -43,8 +43,10 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class CommandLineInterface {
     private static String API_KEY = null;
+    private static String OPENAI_MODEL = null;
     private static String HISTORY_FILE_NAME = null;
     private static String CODE_FILE_DATA_FORMAT = null;
+    private static String OPENAICLI_CMD_HEADER = null;
 
     /**
      * A value that represents the regular expression in a ChatMessage response
@@ -68,11 +70,19 @@ public class CommandLineInterface {
             API_KEY = properties.getProperty("openai.api.key");
             if ( StringUtils.isEmpty( API_KEY ) ) throw new IllegalArgumentException("OpenAI API key must be set in config.properties");
 
+            OPENAI_MODEL = (String) properties.get("openai.model");
+            if ( StringUtils.isEmpty( OPENAI_MODEL ) ) OPENAI_MODEL = "chatgpt-3.5";
+
             HISTORY_FILE_NAME = (String) properties.get("openaicli.filename.history");
             if ( StringUtils.isEmpty( HISTORY_FILE_NAME ) ) HISTORY_FILE_NAME = "history";
 
             CODE_FILE_DATA_FORMAT = (String) properties.get("openaicli.filename.dateFormat");
             if ( StringUtils.isEmpty( API_KEY ) ) CODE_FILE_DATA_FORMAT = "yyyy-MM-ddHH:mm:ss";
+
+            OPENAICLI_CMD_HEADER = (String) properties.get("openaicli.commandline.header");
+            if ( StringUtils.isEmpty( OPENAICLI_CMD_HEADER ) ) OPENAICLI_CMD_HEADER = "Open AI CLI --->";
+
+
 
             service = new OpenAiService(API_KEY);
             history = new ArrayList<>();
@@ -139,39 +149,45 @@ public class CommandLineInterface {
 
     /**
      * A method to write chat history to a file.
-     */
+     * TODO: rename old history with date.
+     * */
     private void clearHistoryToFile() {
-        // Copy original with date.
-        // Create new empty file.
+        File oldFile = new File( HISTORY_FILE_NAME ); // Create a File object with the old file path
+        File newFile = new File(oldFile.getParent(), HISTORY_FILE_NAME + "." + generateDateString() ); // Create a File object with the new file path
+        boolean isRenamed = oldFile.renameTo(newFile); // Rename the file
+
+        // Check if the file was successfully renamed
+        if (isRenamed) {
+            System.out.println("File renamed successfully.");
+        } else {
+            System.out.println("File renaming failed.");
+        }
+
         try {
             File historyFile = new File( HISTORY_FILE_NAME );
             if ( !historyFile.exists() ) {
-                historyFile.createNewFile();
+                boolean isCreated = historyFile.createNewFile();
+                if (isRenamed) {
+                    System.out.println("File renamed successfully.");
+                } else {
+                    System.out.println("File renaming failed.");
+                }
             }
         } catch ( IOException createException ) {
             handleException( "couldn't create the history file", createException );
             throw new RuntimeException( "Failed to create the history file. Exiting");
         }
-        try ( ObjectOutputStream outputStream = new ObjectOutputStream( new FileOutputStream( HISTORY_FILE_NAME ) ) ) {
-
-        } catch ( IOException writeException ) {
-            handleException( "couldn't write the history file", writeException );
-            throw new RuntimeException( "Failed to write the the code file. Exiting");
-        }
     }
 
     /**
-     * A method to generate data string used in filenames
+     * A method to generate data string
      *
-     * @param codeType the type of code
-     * @return a formatted file name
+     * @return a generate date string
      */
-    private static String generateDataString( String codeType ) {
+    private static String generateDateString( ) {
         LocalDateTime currentDateTime = LocalDateTime.now();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern( CODE_FILE_DATA_FORMAT );
-        String formattedDateTime = currentDateTime.format(formatter);
-
-        return formattedDateTime + ( StringUtils.isEmpty(codeType) ? "" : "." + codeType );
+        return currentDateTime.format(formatter);
     }
 
     /**
@@ -181,11 +197,7 @@ public class CommandLineInterface {
      * @return a formatted file name
      */
     private static String generateCodeFileName( String codeType ) {
-        LocalDateTime currentDateTime = LocalDateTime.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern( CODE_FILE_DATA_FORMAT );
-        String formattedDateTime = currentDateTime.format(formatter);
-
-        return formattedDateTime + ( StringUtils.isEmpty(codeType) ? "" : "." + codeType );
+        return generateDateString( ) + ( StringUtils.isEmpty(codeType) ? "" : "." + codeType );
     }
 
     private static boolean hasCode( ChatMessage message ) {
@@ -272,26 +284,27 @@ public class CommandLineInterface {
             return false;
         } else if ( userInput.equalsIgnoreCase("WIPE") ||
                     userInput.equalsIgnoreCase("WIPEHISTORY") ) {
-            history = new ArrayList<>();
-            clearHistoryToFile();
+            history = new ArrayList<>( );
+            clearHistoryToFile( );
         }
 
         // Add the last user message to history
         ChatMessage userMessage = new ChatMessage( ChatMessageRole.USER.value(), userInput );
-        history.add(userMessage);
+        history.add( userMessage );
 
         // Process the user's message with OpenAI
-        ChatCompletionRequest chatRequest = ChatCompletionRequest.builder()
-                                                                 .model("gpt-4-0613") // see https://platform.openai.com/docs/models
-                                                                 .messages(history)
-                                                                 .maxTokens(256)
-                                                                 .build();
+        ChatCompletionRequest chatRequest = ChatCompletionRequest.builder( )
+                                                                 .model( OPENAI_MODEL ) // see https://platform.openai.com/docs/models
+                                                                 .messages( history )
+                                                                 .maxTokens( 256 )
+                                                                 .build( );
 
-        ChatMessage response = service.createChatCompletion(chatRequest).getChoices()
-                                                                        .get(0)
-                                                                        .getMessage();
+        ChatMessage response = service.createChatCompletion( chatRequest ).getChoices( )
+                                                                          .get( 0 )
+                                                                          .getMessage( );
 
-        history.add(response); // Add the last OpenAI message to history
+        history.add( response ); // Add the last OpenAI message to history
+        System.out.print( "ChatGPT: " + response.getContent( )  + System.lineSeparator( ) );
         return true;
     }
 
