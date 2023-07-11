@@ -82,8 +82,6 @@ public class CommandLineInterface {
             OPENAICLI_CMD_HEADER = (String) properties.get("openaicli.commandline.header");
             if ( StringUtils.isEmpty( OPENAICLI_CMD_HEADER ) ) OPENAICLI_CMD_HEADER = "Open AI CLI --->";
 
-
-
             service = new OpenAiService(API_KEY);
             history = new ArrayList<>();
 
@@ -100,10 +98,10 @@ public class CommandLineInterface {
      * @param exception the thrown exception
      */
     private static void handleException(String failMessage, Exception exception) {
-        System.out.println("Oooops, " + failMessage + "... Reason: " + exception.getMessage());
-        System.out.println(" - - - - - - - Stacktrace start - - - - - - - ");
+        System.out.println(OPENAICLI_CMD_HEADER + "Oooops, " + failMessage + "... Reason: " + exception.getMessage());
+        System.out.println(OPENAICLI_CMD_HEADER + " - - - - - - - Stacktrace start - - - - - - - ");
         exception.printStackTrace();
-        System.out.println(" - - - - - - - Stacktrace end - - - - - - - ");
+        System.out.println(OPENAICLI_CMD_HEADER + " - - - - - - - Stacktrace end - - - - - - - ");
     }
 
     /**
@@ -158,9 +156,9 @@ public class CommandLineInterface {
 
         // Check if the file was successfully renamed
         if (isRenamed) {
-            System.out.println("File renamed successfully.");
+            System.out.println(OPENAICLI_CMD_HEADER + " History file renamed successfully.");
         } else {
-            System.out.println("File renaming failed.");
+            System.out.println(OPENAICLI_CMD_HEADER + " History file renaming failed.");
         }
 
         try {
@@ -168,9 +166,9 @@ public class CommandLineInterface {
             if ( !historyFile.exists() ) {
                 boolean isCreated = historyFile.createNewFile();
                 if (isRenamed) {
-                    System.out.println("File renamed successfully.");
+                    System.out.println(OPENAICLI_CMD_HEADER + " History file created successfully.");
                 } else {
-                    System.out.println("File renaming failed.");
+                    System.out.println(OPENAICLI_CMD_HEADER + " File renaming failed.");
                 }
             }
         } catch ( IOException createException ) {
@@ -211,7 +209,7 @@ public class CommandLineInterface {
      * A method to check if a ChatMessage contains code.
      *
      * @param message the chat message
-     * @return true if it contains code, false otherwise
+     * @return codeType if it contains code, "" otherwise
      */
     private static String extractCodeType( ChatMessage message ) {
         String content = message.getContent( );
@@ -236,8 +234,8 @@ public class CommandLineInterface {
 
         while (matcher.find()) {
             String codeBlock = matcher.group( 1 ).replace( "\\n", "\n" )
-                    .replace( "\\\"", "\"" )
-                    .trim( );
+                                                 .replace( "\\\"", "\"" )
+                                                 .trim( );
             codeList.add( codeBlock );
         }
         return codeList;
