@@ -1,4 +1,4 @@
-package com.jareid.openaicli;
+package com.jareid.openaicli.cli;
 /************************************************************************************
  |                         Copyright Jamie Reid 2023                                |
  ************************************************************************************/
@@ -38,11 +38,10 @@ import org.apache.commons.lang3.StringUtils;
  * @see ChatCompletionRequest
  * @see ChatMessage
  * @see ChatMessageRole
- * @version 1.0
+ * @version 0.0.1
  * @since 2023-07-08
  */
 public class CommandLineInterface {
-    private static String API_KEY = null;
     private static String OPENAI_MODEL = null;
     private static String HISTORY_FILE_NAME = null;
     private static String CODE_FILE_DATA_FORMAT = null;
@@ -67,8 +66,8 @@ public class CommandLineInterface {
             Properties properties = new Properties();
             properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
 
-            API_KEY = properties.getProperty("openai.api.key");
-            if ( StringUtils.isEmpty( API_KEY ) ) throw new IllegalArgumentException("OpenAI API key must be set in config.properties");
+            String API_KEY = properties.getProperty("openai.api.key");
+            if ( StringUtils.isEmpty(API_KEY) ) throw new IllegalArgumentException("OpenAI API key must be set in config.properties");
 
             OPENAI_MODEL = (String) properties.get("openai.model");
             if ( StringUtils.isEmpty( OPENAI_MODEL ) ) OPENAI_MODEL = "chatgpt-3.5";
@@ -77,12 +76,12 @@ public class CommandLineInterface {
             if ( StringUtils.isEmpty( HISTORY_FILE_NAME ) ) HISTORY_FILE_NAME = "history";
 
             CODE_FILE_DATA_FORMAT = (String) properties.get("openaicli.filename.dateFormat");
-            if ( StringUtils.isEmpty( API_KEY ) ) CODE_FILE_DATA_FORMAT = "yyyy-MM-ddHH:mm:ss";
+            if ( StringUtils.isEmpty( CODE_FILE_DATA_FORMAT ) ) CODE_FILE_DATA_FORMAT = "yyyy-MM-ddHH:mm:ss";
 
             OPENAICLI_CMD_HEADER = (String) properties.get("openaicli.commandline.header");
             if ( StringUtils.isEmpty( OPENAICLI_CMD_HEADER ) ) OPENAICLI_CMD_HEADER = "Open AI CLI --->";
 
-            service = new OpenAiService(API_KEY);
+            service = new OpenAiService( API_KEY );
             history = new ArrayList<>();
 
         } catch ( Exception startUpException ) {
@@ -108,15 +107,7 @@ public class CommandLineInterface {
      * A method to read chat history from a file.
      */
     private void readHistoryFromFile() throws RuntimeException {
-        File historyFile = new File( HISTORY_FILE_NAME );
-        try {
-            if ( !historyFile.exists() ) {
-                historyFile.createNewFile();
-            }
-        } catch ( IOException createException ) {
-            handleException( "couldn't create the history file", createException );
-            throw new RuntimeException( "Failed to create the history file. Exiting");
-        }
+        File historyFile = createNewHistoryFile();
         if ( historyFile.length() != 0 ) {
             try ( ObjectInputStream inputStream = new ObjectInputStream( new FileInputStream( historyFile ) ) ) {
                 history.add((ChatMessage) inputStream.readObject());
@@ -150,27 +141,44 @@ public class CommandLineInterface {
      * TODO: rename old history with date.
      * */
     private void clearHistoryToFile() {
-        File oldFile = new File( HISTORY_FILE_NAME ); // Create a File object with the old file path
-        File newFile = new File(oldFile.getParent(), HISTORY_FILE_NAME + "." + generateDateString() ); // Create a File object with the new file path
-        boolean isRenamed = oldFile.renameTo(newFile); // Rename the file
+        renameHistoryFile();
+        createNewHistoryFile();
+        writeHistoryToFile();
+    }
 
-        // Check if the file was successfully renamed
-        if (isRenamed) {
+    /**
+     * Renames the history file to a new file with the date as the file type.
+     */
+    private static void renameHistoryFile() {
+        File originalFile = new File( HISTORY_FILE_NAME ); // Create a File object with the old file path
+        File renamedFile = new File(originalFile.getParent(), HISTORY_FILE_NAME + "." + generateDateString() ); // Create a File object with the new file path
+
+        // Rename the file and check for success
+        if ( originalFile.renameTo( renamedFile ) ) {
             System.out.println(OPENAICLI_CMD_HEADER + " History file renamed successfully.");
         } else {
             System.out.println(OPENAICLI_CMD_HEADER + " History file renaming failed.");
         }
+    }
 
+    /**
+     * Creates a new history file (without extension).
+     * Used for a variety of reasons.
+     */
+    private static File createNewHistoryFile( ) {
+        File historyFile = new File( HISTORY_FILE_NAME ); // Check if the file already exists
         try {
-            File historyFile = new File( HISTORY_FILE_NAME );
             if ( !historyFile.exists() ) {
-                boolean isCreated = historyFile.createNewFile();
-                if (isRenamed) {
+                // Create the file and check for success
+                if ( historyFile.createNewFile( ) ) {
                     System.out.println(OPENAICLI_CMD_HEADER + " History file created successfully.");
                 } else {
-                    System.out.println(OPENAICLI_CMD_HEADER + " File renaming failed.");
+                    System.out.println(OPENAICLI_CMD_HEADER + " History file creation failed.");
                 }
+            } else {
+                System.out.println(OPENAICLI_CMD_HEADER + " History file already exists.");
             }
+            return historyFile;
         } catch ( IOException createException ) {
             handleException( "couldn't create the history file", createException );
             throw new RuntimeException( "Failed to create the history file. Exiting");
@@ -273,23 +281,40 @@ public class CommandLineInterface {
         System.out.print("You: ");
         Scanner scanner = new Scanner(System.in);
         String userInput = scanner.nextLine();
-        if ( userInput.equalsIgnoreCase("QUIT") ||
-             userInput.equalsIgnoreCase("WRITELAST") ) {
+        return askGPT( userInput );
+    }
+
+
+    /**
+     * A method to handle user inputs and interact with OpenAI.
+     *
+     * @param userInput THe input from the command line or from the UI
+     *
+     * TODO: modify for UI usage.
+     *
+     * @return true if the chat should continue, false otherwise
+     */
+    public boolean askGPT( String userInput ) {
+        if ( userInput.equalsIgnoreCase( "QUIT" ) ||
+             userInput.equalsIgnoreCase( "WRITELAST" ) ) {
             writeHistoryToFile();
-            ChatMessage lastMessage = history.get(history.size() - 1);
-            if ( hasCode( lastMessage ) ) {
-                writeCodeToFile( lastMessage );
-            }
 
             // If we received QUIT return false to exit the program
-            if( userInput.equalsIgnoreCase("QUIT") ) return false;
-        } else if ( userInput.equalsIgnoreCase("WIPE") ||
-                    userInput.equalsIgnoreCase("WIPEHISTORY") ) {
+            if( userInput.equalsIgnoreCase( "QUIT" ) ) return false;
+        } else if ( userInput.equalsIgnoreCase( "WIPE" ) ||
+                    userInput.equalsIgnoreCase( "WIPEHISTORY" ) ) {
             history = new ArrayList<>( );
             clearHistoryToFile( );
         }
 
-        // Add the last user message to history
+        ChatMessage response = askGPT_GetResponse( userInput );
+
+        System.out.print( "ChatGPT: " + response.getContent( ) + System.lineSeparator( ) );
+
+        return false;
+    }
+
+    public ChatMessage askGPT_GetResponse( String userInput ) {
         ChatMessage userMessage = new ChatMessage( ChatMessageRole.USER.value(), userInput );
         history.add( userMessage );
 
@@ -304,16 +329,16 @@ public class CommandLineInterface {
                                                                           .get( 0 )
                                                                           .getMessage( );
 
-        history.add( response ); // Add the last OpenAI message to history
-        System.out.print( "ChatGPT: " + response.getContent( )  + System.lineSeparator( ) );
-        return true;
+        history.add( response );  // Add the last user message to history
+
+        return response;
     }
 
     /**
      * A method to start the chat loop.
      * TODO: decide if a thread could be useful, write now in such a simple project it is not useful.
      */
-    protected void run() {
+    public void run() {
         readHistoryFromFile();
         // Creating a new thread
         //Thread thread = new Thread(() -> {
