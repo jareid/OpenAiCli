@@ -273,13 +273,16 @@ public class CommandLineInterface {
         System.out.print("You: ");
         Scanner scanner = new Scanner(System.in);
         String userInput = scanner.nextLine();
-        if (userInput.equalsIgnoreCase("QUIT")) {
+        if ( userInput.equalsIgnoreCase("QUIT") ||
+             userInput.equalsIgnoreCase("WRITELAST") ) {
             writeHistoryToFile();
             ChatMessage lastMessage = history.get(history.size() - 1);
             if ( hasCode( lastMessage ) ) {
                 writeCodeToFile( lastMessage );
             }
-            return false;
+
+            // If we received QUIT return false to exit the program
+            if( userInput.equalsIgnoreCase("QUIT") ) return false;
         } else if ( userInput.equalsIgnoreCase("WIPE") ||
                     userInput.equalsIgnoreCase("WIPEHISTORY") ) {
             history = new ArrayList<>( );
