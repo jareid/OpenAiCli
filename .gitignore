@@ -79,3 +79,6 @@ local.properties
 
 # Jupyter Notebook
 .ipynb_checkpoints/
+
+# Project specific
+secret.properties
