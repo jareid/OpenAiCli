@@ -1,7 +1,7 @@
 package com.jareid.openaicli;
 
 import com.jareid.openaicli.cli.CommandLineInterface;
-import com.jareid.openaicli.ui.MainScreen;
+import com.jareid.openaicli.ui.UserInterfaceScreen;
 
 import javax.swing.*;
 
@@ -58,7 +58,7 @@ public class Main {
         try {
             if (runInUIMode) {
                 // Run the UI creation on the Event Dispatch Thread (EDT) for thread safety
-                SwingUtilities.invokeLater(() -> new MainScreen( cli ));
+                SwingUtilities.invokeLater(() -> new UserInterfaceScreen( cli ));
             } else {
                 cli.run();
             }

@@ -1,7 +1,5 @@
 package com.jareid.openaicli.cli;
-/************************************************************************************
- |                         Copyright Jamie Reid 2023                                |
- ************************************************************************************/
+
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -51,23 +49,26 @@ public class CommandLineInterface {
      * A value that represents the regular expression in a ChatMessage response
      * TODO: change to handle more than one code block
      */
-    private static String CODE_REGULAR_EXPORESSION = "```(\\w+)?([\\s\\S]*)```";
+    private static final String CODE_REGULAR_EXPRESSION = "```(\\w+)?([\\s\\S]*)```";
 
     private List<ChatMessage> history;
 
-    private OpenAiService service;
+    private final OpenAiService service;
 
     /**
      * The default constructor that initializes the OpenAiService and chat history.
      */
     public CommandLineInterface() throws RuntimeException {
         try {
-            // Load properties
+            // Load secret properties
             Properties properties = new Properties();
-            properties.load(getClass().getClassLoader().getResourceAsStream("config.properties"));
+            properties.load( getClass().getClassLoader( ).getResourceAsStream( "secret.properties" ) );
 
-            String API_KEY = properties.getProperty("openai.api.key");
-            if ( StringUtils.isEmpty(API_KEY) ) throw new IllegalArgumentException("OpenAI API key must be set in config.properties");
+            String apiKey = properties.getProperty("openai.api.key");
+            if ( StringUtils.isEmpty( apiKey ) ) throw new IllegalArgumentException("OpenAI API key must be set in config.properties");
+
+            // Load non-secret properties
+            properties.load( getClass().getClassLoader( ).getResourceAsStream( "config.properties" ) );
 
             OPENAI_MODEL = (String) properties.get("openai.model");
             if ( StringUtils.isEmpty( OPENAI_MODEL ) ) OPENAI_MODEL = "chatgpt-3.5";
@@ -81,7 +82,7 @@ public class CommandLineInterface {
             OPENAICLI_CMD_HEADER = (String) properties.get("openaicli.commandline.header");
             if ( StringUtils.isEmpty( OPENAICLI_CMD_HEADER ) ) OPENAICLI_CMD_HEADER = "Open AI CLI --->";
 
-            service = new OpenAiService( API_KEY );
+            service = new OpenAiService(apiKey);
             history = new ArrayList<>();
 
         } catch ( Exception startUpException ) {
@@ -208,7 +209,7 @@ public class CommandLineInterface {
 
     private static boolean hasCode( ChatMessage message ) {
         String content = message.getContent( );
-        Pattern pattern = Pattern.compile( CODE_REGULAR_EXPORESSION );
+        Pattern pattern = Pattern.compile(CODE_REGULAR_EXPRESSION);
         Matcher matcher = pattern.matcher( content );
         return matcher.find();
     }
@@ -221,7 +222,7 @@ public class CommandLineInterface {
      */
     private static String extractCodeType( ChatMessage message ) {
         String content = message.getContent( );
-        Pattern pattern = Pattern.compile( CODE_REGULAR_EXPORESSION );
+        Pattern pattern = Pattern.compile(CODE_REGULAR_EXPRESSION);
         Matcher matcher = pattern.matcher( content );
         if (matcher.find()) return matcher.group(1);
         else return "";
@@ -237,7 +238,7 @@ public class CommandLineInterface {
         String content = message.getContent( );
         List<String> codeList = new ArrayList<>();
 
-        Pattern pattern = Pattern.compile( CODE_REGULAR_EXPORESSION , java.util.regex.Pattern.DOTALL);
+        Pattern pattern = Pattern.compile(CODE_REGULAR_EXPRESSION, java.util.regex.Pattern.DOTALL);
         Matcher matcher = pattern.matcher( content );
 
         while (matcher.find()) {
@@ -287,10 +288,9 @@ public class CommandLineInterface {
 
     /**
      * A method to handle user inputs and interact with OpenAI.
+     * TODO: modify for UI usage.
      *
      * @param userInput THe input from the command line or from the UI
-     *
-     * TODO: modify for UI usage.
      *
      * @return true if the chat should continue, false otherwise
      */
@@ -308,6 +308,8 @@ public class CommandLineInterface {
         }
 
         ChatMessage response = askGPT_GetResponse( userInput );
+
+        if ( hasCode( response ) ) writeCodeToFile( response );
 
         System.out.print( "ChatGPT: " + response.getContent( ) + System.lineSeparator( ) );
 

@@ -6,7 +6,6 @@ import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.util.data.MutableDataSet;
 
 import javax.swing.*;
-import javax.swing.text.Document;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,8 +27,7 @@ import java.awt.event.ActionListener;
  * @version 0.0.2
  * @since 2023-07-11
  */
-public class MainScreen {
-
+public class UserInterfaceScreen {
     private final CommandLineInterface cli;
     private final JTextField userInputField;
     private final JEditorPane outputArea;
@@ -39,7 +37,7 @@ public class MainScreen {
      *
      * @param cli The command line interface for interacting with the OpenAI GPT model.
      */
-    public MainScreen(CommandLineInterface cli) {
+    public UserInterfaceScreen(CommandLineInterface cli) {
         this.cli = cli;
 
         JFrame frame = new JFrame("OpenAI CLI");
