@@ -35,7 +35,7 @@ public class ToolbarController {
     @FXML
     private void handleSendHistoryAction() {
         sendHistoryCheckBox.setSelected(!sendHistoryCheckBox.isSelected());
-        // TODO: code here to adapt CLI options
+        commandLineInterface.changeOption( "disableSendingChatGPTHistory" );
     }
 
     /**
@@ -43,9 +43,11 @@ public class ToolbarController {
      */
     @FXML
     private void handleLogHistoryAction() {
-        logHistoryCheckBox.setSelected(!logHistoryCheckBox.isSelected());
-        sendHistoryCheckBox.setSelected(!sendHistoryCheckBox.isSelected());
-        // TODO: code here to adapt CLI options
+        logHistoryCheckBox.setSelected( !logHistoryCheckBox.isSelected( ) );
+        commandLineInterface.changeOption( "disableLoggingChatGPTHistory" );
+
+        sendHistoryCheckBox.setSelected( !sendHistoryCheckBox.isSelected( ) );
+        commandLineInterface.changeOption( "disableSendingChatGPTHistory" );
     }
 
     /**
@@ -53,8 +55,8 @@ public class ToolbarController {
      */
     @FXML
     private void handleOutputCodeAction() {
-        outputCodeCheckBox.setSelected(!outputCodeCheckBox.isSelected());
-        // TODO: code here to adapt CLI options
+        outputCodeCheckBox.setSelected( !outputCodeCheckBox.isSelected( ) );
+        commandLineInterface.changeOption( "disableOutputCodeToFile" );
     }
 
     /**

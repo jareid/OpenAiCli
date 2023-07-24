@@ -105,16 +105,15 @@ public class CommandLineInterface {
     }
 
     /**
-     * This method changes the value of a specified option in the options HashMap.
+     * This method alternates the boolean value of a specified option in the options HashMap.
      *
      * @param optionName The name of the option to be changed. It should be a valid option name and is case-sensitive.
-     * @param value The new boolean value that the specified option will be set to.
      *
      * @throws NullPointerException if the specified optionName is null.
      * @throws IllegalArgumentException if the specified optionName does not exist in the options HashMap.
      */
-    public void changeOption( String optionName, boolean value ) {
-        options.put( optionName, value );
+    public void changeOption( String optionName ) {
+        options.put( optionName, !options.get( optionName ) );
     }
 }
 
