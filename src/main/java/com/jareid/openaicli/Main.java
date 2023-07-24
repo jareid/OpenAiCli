@@ -41,7 +41,7 @@ public class Main extends Application {
      */
     public static void main(String[] args) {
         boolean runInUIMode = false;
-        boolean runInJavaFXMode = false;
+        boolean runInJavaFXMode = true;
 
         for (String arg : args) {
             if (arg.equals("--ui") || arg.equals("-u")) {
