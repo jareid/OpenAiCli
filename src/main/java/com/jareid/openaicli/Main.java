@@ -1,66 +1,69 @@
 package com.jareid.openaicli;
 
 import com.jareid.openaicli.cli.CommandLineInterface;
-import com.jareid.openaicli.ui.UserInterfaceScreen;
+import com.jareid.openaicli.javafxui.UserInterfaceScreen;
+import javafx.application.Application;
+import javafx.stage.Stage;
 
 import javax.swing.*;
 
 /**
- * This class represents the Command Line Interface (CLI) to interact with the OpenAI GPT model.
+ * The {@code MainJavaFX} class is the entry point for the application.
  *
- * <p>The CLI provides a set of functionalities including:
- * <ul>
- *     <li>Read the history of the conversation from a file</li>
- *     <li>Write the history of the conversation to a file</li>
- *     <li>Generate a unique file name for the code file</li>
- *     <li>Check if a ChatMessage has code block</li>
- *     <li>Extract the code type and the code block from a ChatMessage</li>
- *     <li>Write the code block from a ChatMessage to a file</li>
- *     <li>Ask the GPT model and get the response</li>
- *     <li>Run the CLI</li>
- * </ul>
+ * <p> The application provides an interface for interacting with an OpenAI GPT model
+ * through a command line interface (CLI), a Spring UI or a JavaFX UI.
+ * By default, the application runs in CLI mode. Other modes can be specified through command line arguments.
  *
- * <p>It can be run in two modes:
- * <ul>
- *     <li>CLI mode (default): it directly interacts with the OpenAI GPT model via the console</li>
- *     <li>UI mode: it runs a graphical user interface to interact with the OpenAI GPT model</li>
- * </ul>
+ * <p> The application supports the following command line arguments:
+ * '--cli' or '-c' to run in CLI mode (default).
+ * '--ui' or '-u' to run in Spring UI mode.
+ * '--javafx' or '-j' to run in JavaFX UI mode.
+ * '--spring' or '-s' to explicitly invoke Spring UI mode, overriding other arguments.
+ *
+ * <p> For instance, 'java -jar openai-cli.jar --javafx' would launch the application in JavaFX UI mode.
  *
  * @author Jamie Reid
  * @version 0.0.2
- * @since 2023-07-08
+ * @since 2023-07-11
  */
-public class Main {
+public class Main extends Application {
     /**
      * The application's entry point.
      *
-     * <p> This main method sets up the CLI for interacting with the OpenAI GPT model,
-     * then creates a new graphical user interface for the CLI and displays it.
+     * <p> The main method processes command line arguments, sets up the CLI for interacting with the OpenAI GPT model,
+     * and then creates and displays the appropriate user interface (CLI, Spring UI, or JavaFX UI).
      *
-     * <p> The application defaults to CLI mode, unless the '--ui' or '-u' argument is passed,
-     * in which case it runs in UI mode. The CLI mode can also be explicitly invoked by passing
-     * the '--cli' or '-c' argument.
+     * <p> A RuntimeException will be caught and printed to the console in case of a failure.
      *
      * @param args an array of command-line arguments for the application
      */
     public static void main(String[] args) {
-        CommandLineInterface cli = new CommandLineInterface();
         boolean runInUIMode = false;
+        boolean runInJavaFXMode = false;
 
         for (String arg : args) {
             if (arg.equals("--ui") || arg.equals("-u")) {
                 runInUIMode = true;
             } else if (arg.equals("--cli") || arg.equalsIgnoreCase("-c")) {
                 runInUIMode = false;
+            } else if (arg.equals("--javafx") || arg.equalsIgnoreCase("-j")) {
+                runInJavaFXMode = true;
+            } else if (arg.equals("--spring") || arg.equalsIgnoreCase("-s")) {
+                runInJavaFXMode = false;
             }
         }
 
         try {
-            if (runInUIMode) {
-                // Run the UI creation on the Event Dispatch Thread (EDT) for thread safety
-                SwingUtilities.invokeLater(() -> new UserInterfaceScreen( cli ));
+            if (runInJavaFXMode) {  //Run in JavaFX UI mode
+                launch(args);
             } else {
-                cli.run();
+                CommandLineInterface cli = new CommandLineInterface();
+                if (runInUIMode) { //Run in Spring UI mode
+                    // Run the UI creation on the Event Dispatch Thread (EDT) for thread safety
+                    SwingUtilities.invokeLater(() -> new com.jareid.openaicli.ui.UserInterfaceScreen( cli ));
+                } else { // Run in Command Line mode
+                    cli.run();
+                }
             }
         } catch (RuntimeException runtimeException) {
             System.out.println( "Argggggh, you killed me because of the following reason: " + runtimeException.getMessage() );
@@ -68,4 +71,22 @@ public class Main {
         }
     }
 
+    /**
+     * The start method is called after the JavaFX application has been initialized.
+     *
+     * <p> It sets up the CLI for interacting with the OpenAI GPT model, then creates a new JavaFX user interface for the CLI and displays it.
+     *
+     * @param primaryStage the primary stage for this application, onto which
+     * the application scene can be set. The primary stage will be embedded in
+     * the browser if the application was launched as an applet. Applications
+     * may create other stages, if needed, but they will not be primary stages.
+     * @throws Exception if an error occurs while loading the FXML or setting up the UI.
+     */
+    @Override
+    public void start(Stage primaryStage) throws Exception {
+        CommandLineInterface cli = new CommandLineInterface();
+        UserInterfaceScreen ui = new UserInterfaceScreen(cli);
+        ui.setPrimaryStage(primaryStage);
+        ui.show();
+    }
 }

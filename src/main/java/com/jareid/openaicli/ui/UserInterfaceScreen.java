@@ -4,6 +4,7 @@ import com.jareid.openaicli.cli.CommandLineInterface;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
 import com.vladsch.flexmark.util.data.MutableDataSet;
+import javafx.fxml.FXML;
 
 import javax.swing.*;
 import java.awt.*;
@@ -29,7 +30,9 @@ import java.awt.event.ActionListener;
  */
 public class UserInterfaceScreen {
     private final CommandLineInterface cli;
+    @FXML
     private final JTextField userInputField;
+    @FXML
     private final JEditorPane outputArea;
 
     /**

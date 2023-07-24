@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<ToolBar xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.jareid.openaicli.javafxui.ToolbarController">
+    <MenuButton text="History">
+        <MenuItem text="Send History to ChatGPT one each request?">
+            <graphic>
+                <CheckBox fx:id="sendHistoryCheckBox"/>
+            </graphic>
+        </MenuItem>
+        <MenuItem text="Log History?">
+            <graphic>
+                <CheckBox fx:id="logHistoryCheckBox"/>
+            </graphic>
+        </MenuItem>
+    </MenuButton>
+    <MenuButton text="Code">
+        <MenuItem text="Output code to file when found in the ChatGPT output?">
+            <graphic>
+                <CheckBox fx:id="outputCodeCheckBox"/>
+            </graphic>
+        </MenuItem>
+    </MenuButton>
+    <Button text="About" onAction="#handleAboutAction"/>
+</ToolBar>

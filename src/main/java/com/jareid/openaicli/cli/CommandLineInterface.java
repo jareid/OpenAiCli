@@ -3,10 +3,7 @@ package com.jareid.openaicli.cli;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Scanner;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,7 +33,7 @@ import org.apache.commons.lang3.StringUtils;
  * @see ChatCompletionRequest
  * @see ChatMessage
  * @see ChatMessageRole
- * @version 0.0.1
+ * @version Last updated: 2023-07-24, Version 0.0.2
  * @since 2023-07-08
  */
 public class CommandLineInterface {
@@ -47,13 +44,23 @@ public class CommandLineInterface {
 
     /**
      * A value that represents the regular expression in a ChatMessage response
-     * TODO: change to handle more than one code block
      */
     private static final String CODE_REGULAR_EXPRESSION = "```(\\w+)?([\\s\\S]*)```";
 
+    /**
+     * A field containing the ChatGPT chat history.
+     */
     private List<ChatMessage> history;
 
+    /**
+     * The OpenAI API Service
+     */
     private final OpenAiService service;
+
+    /**
+     * A field to control the options of the ChatGPT controller.
+     */
+    private Map<String, Boolean> options;
 
     /**
      * The default constructor that initializes the OpenAiService and chat history.
@@ -83,13 +90,33 @@ public class CommandLineInterface {
             if ( StringUtils.isEmpty( OPENAICLI_CMD_HEADER ) ) OPENAICLI_CMD_HEADER = "Open AI CLI --->";
 
             service = new OpenAiService(apiKey);
+
             history = new ArrayList<>();
+
+            options = new HashMap<>();
+            options.put( "disableOutputCodeToFile", false );
+            options.put( "disableLoggingChatGPTHistory", false );
+            options.put( "disableSendingChatGPTHistory", false );
 
         } catch ( Exception startUpException ) {
             handleException(" couldn't start up the CLI", startUpException );
             throw new RuntimeException( "Failed to read from the history file. Exiting");
         }
     }
+
+    /**
+     * This method changes the value of a specified option in the options HashMap.
+     *
+     * @param optionName The name of the option to be changed. It should be a valid option name and is case-sensitive.
+     * @param value The new boolean value that the specified option will be set to.
+     *
+     * @throws NullPointerException if the specified optionName is null.
+     * @throws IllegalArgumentException if the specified optionName does not exist in the options HashMap.
+     */
+    public void changeOption( String optionName, boolean value ) {
+        options.put( optionName, value );
+    }
+}
 
     /**
      * A method to handle exceptions and print stack trace.
@@ -256,6 +283,8 @@ public class CommandLineInterface {
      * @param message the chat message
      */
     private void writeCodeToFile( ChatMessage message ) throws RuntimeException {
+        if (options.get("disableOutputCodeToFile")) return;
+
         String codeType = extractCodeType( message );
         try ( BufferedWriter writer = new BufferedWriter( new FileWriter( generateCodeFileName( codeType ) ) ) ) {
             List<String> codeList = extractCode( message );
@@ -318,20 +347,21 @@ public class CommandLineInterface {
 
     public ChatMessage askGPT_GetResponse( String userInput ) {
         ChatMessage userMessage = new ChatMessage( ChatMessageRole.USER.value(), userInput );
-        history.add( userMessage );
+        if ( !options.get( "disableLoggingChatGPTHistory" ) ) history.add( userMessage );
 
         // Process the user's message with OpenAI
-        ChatCompletionRequest chatRequest = ChatCompletionRequest.builder( )
-                                                                 .model( OPENAI_MODEL ) // see https://platform.openai.com/docs/models
-                                                                 .messages( history )
-                                                                 .maxTokens( 256 )
-                                                                 .build( );
+        if ( !options.get( "disableSendingChatGPTHistory" ) ) {
+            ChatCompletionRequest chatRequest = ChatCompletionRequest.builder( )
+                                                                     .model( OPENAI_MODEL ) // see https://platform.openai.com/docs/models
+                                                                     .messages( !options.get( "disableSendingChatGPTHistory" ) ? history : null )
+                                                                     .maxTokens( 256 )
+                                                                     .build( );
 
         ChatMessage response = service.createChatCompletion( chatRequest ).getChoices( )
                                                                           .get( 0 )
                                                                           .getMessage( );
 
-        history.add( response );  // Add the last user message to history
+        if ( !options.get( "disableLoggingChatGPTHistory" ) ) history.add( response );  // Add the last user message to history
 
         return response;
     }
