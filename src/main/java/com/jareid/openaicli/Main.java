@@ -1,7 +1,6 @@
 package com.jareid.openaicli;
 
 import com.jareid.openaicli.api.APIHandler;
-import com.jareid.openaicli.cli.CommandLineInteface;
 import com.jareid.openaicli.ui.UserInterfaceScreen;
 import com.jareid.openaicli.ui.UserInterfaceScreen_Swing;
 import javafx.application.Application;
