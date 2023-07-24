@@ -1,6 +1,6 @@
-package com.jareid.openaicli.javafxui;
+package com.jareid.openaicli.ui;
 
-import com.jareid.openaicli.cli.CommandLineInterface;
+import com.jareid.openaicli.api.APIHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Alert;
@@ -23,10 +23,10 @@ public class ToolbarController {
     @FXML
     private CheckBox outputCodeCheckBox;
 
-    private CommandLineInterface commandLineInterface;
+    private APIHandler APIHandler;
 
-    public ToolbarController(CommandLineInterface commandLineInterface) {
-        this.commandLineInterface = commandLineInterface;
+    public ToolbarController(APIHandler APIHandler) {
+        this.APIHandler = APIHandler;
     }
 
     /**
@@ -35,7 +35,7 @@ public class ToolbarController {
     @FXML
     private void handleSendHistoryAction() {
         sendHistoryCheckBox.setSelected(!sendHistoryCheckBox.isSelected());
-        commandLineInterface.changeOption( "disableSendingChatGPTHistory" );
+        APIHandler.changeOption( "disableSendingChatGPTHistory" );
     }
 
     /**
@@ -44,10 +44,10 @@ public class ToolbarController {
     @FXML
     private void handleLogHistoryAction() {
         logHistoryCheckBox.setSelected( !logHistoryCheckBox.isSelected( ) );
-        commandLineInterface.changeOption( "disableLoggingChatGPTHistory" );
+        APIHandler.changeOption( "disableLoggingChatGPTHistory" );
 
         sendHistoryCheckBox.setSelected( !sendHistoryCheckBox.isSelected( ) );
-        commandLineInterface.changeOption( "disableSendingChatGPTHistory" );
+        APIHandler.changeOption( "disableSendingChatGPTHistory" );
     }
 
     /**
@@ -56,7 +56,7 @@ public class ToolbarController {
     @FXML
     private void handleOutputCodeAction() {
         outputCodeCheckBox.setSelected( !outputCodeCheckBox.isSelected( ) );
-        commandLineInterface.changeOption( "disableOutputCodeToFile" );
+        APIHandler.changeOption( "disableOutputCodeToFile" );
     }
 
     /**

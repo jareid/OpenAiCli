@@ -6,7 +6,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<ToolBar xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.jareid.openaicli.javafxui.ToolbarController">
+<ToolBar xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" fx:controller="com.jareid.openaicli.ui.ToolbarController">
     <MenuButton text="History">
         <MenuItem text="Send History to ChatGPT one each request?">
             <graphic>

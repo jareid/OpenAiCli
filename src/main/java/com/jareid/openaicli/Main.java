@@ -1,7 +1,9 @@
 package com.jareid.openaicli;
 
-import com.jareid.openaicli.cli.CommandLineInterface;
-import com.jareid.openaicli.javafxui.UserInterfaceScreen;
+import com.jareid.openaicli.api.APIHandler;
+import com.jareid.openaicli.cli.CommandLineInteface;
+import com.jareid.openaicli.ui.UserInterfaceScreen;
+import com.jareid.openaicli.ui.UserInterfaceScreen_Swing;
 import javafx.application.Application;
 import javafx.stage.Stage;
 
@@ -11,14 +13,14 @@ import javax.swing.*;
  * The {@code MainJavaFX} class is the entry point for the application.
  *
  * <p> The application provides an interface for interacting with an OpenAI GPT model
- * through a command line interface (CLI), a Spring UI or a JavaFX UI.
+ * through a command line interface (CLI), a Swing UI or a JavaFX UI.
  * By default, the application runs in CLI mode. Other modes can be specified through command line arguments.
  *
  * <p> The application supports the following command line arguments:
  * '--cli' or '-c' to run in CLI mode (default).
- * '--ui' or '-u' to run in Spring UI mode.
+ * '--ui' or '-u' to run in swing UI mode.
  * '--javafx' or '-j' to run in JavaFX UI mode.
- * '--spring' or '-s' to explicitly invoke Spring UI mode, overriding other arguments.
+ * '--swing' or '-s' to explicitly invoke Swing UI mode, overriding other arguments.
  *
  * <p> For instance, 'java -jar openai-cli.jar --javafx' would launch the application in JavaFX UI mode.
  *
@@ -31,7 +33,7 @@ public class Main extends Application {
      * The application's entry point.
      *
      * <p> The main method processes command line arguments, sets up the CLI for interacting with the OpenAI GPT model,
-     * and then creates and displays the appropriate user interface (CLI, Spring UI, or JavaFX UI).
+     * and then creates and displays the appropriate user interface (CLI, swing UI, or JavaFX UI).
      *
      * <p> A RuntimeException will be caught and printed to the console in case of a failure.
      *
@@ -48,7 +50,7 @@ public class Main extends Application {
                 runInUIMode = false;
             } else if (arg.equals("--javafx") || arg.equalsIgnoreCase("-j")) {
                 runInJavaFXMode = true;
-            } else if (arg.equals("--spring") || arg.equalsIgnoreCase("-s")) {
+            } else if (arg.equals("--swing") || arg.equalsIgnoreCase("-s")) {
                 runInJavaFXMode = false;
             }
         }
@@ -57,12 +59,12 @@ public class Main extends Application {
             if (runInJavaFXMode) {  //Run in JavaFX UI mode
                 launch(args);
             } else {
-                CommandLineInterface cli = new CommandLineInterface();
-                if (runInUIMode) { //Run in Spring UI mode
+                APIHandler api = new APIHandler();
+                if (runInUIMode) { //Run in swing UI mode
                     // Run the UI creation on the Event Dispatch Thread (EDT) for thread safety
-                    SwingUtilities.invokeLater(() -> new com.jareid.openaicli.ui.UserInterfaceScreen( cli ));
+                    SwingUtilities.invokeLater(() -> new UserInterfaceScreen_Swing( api ));
                 } else { // Run in Command Line mode
-                    cli.run();
+                    api.start();
                 }
             }
         } catch (RuntimeException runtimeException) {
@@ -84,7 +86,7 @@ public class Main extends Application {
      */
     @Override
     public void start(Stage primaryStage) throws Exception {
-        CommandLineInterface cli = new CommandLineInterface();
+        APIHandler cli = new APIHandler();
         UserInterfaceScreen ui = new UserInterfaceScreen(cli);
         ui.setPrimaryStage(primaryStage);
         ui.show();
