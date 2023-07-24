@@ -115,7 +115,6 @@ public class CommandLineInterface {
     public void changeOption( String optionName ) {
         options.put( optionName, !options.get( optionName ) );
     }
-}
 
     /**
      * A method to handle exceptions and print stack trace.
@@ -349,12 +348,12 @@ public class CommandLineInterface {
         if ( !options.get( "disableLoggingChatGPTHistory" ) ) history.add( userMessage );
 
         // Process the user's message with OpenAI
-        if ( !options.get( "disableSendingChatGPTHistory" ) ) {
-            ChatCompletionRequest chatRequest = ChatCompletionRequest.builder( )
-                                                                     .model( OPENAI_MODEL ) // see https://platform.openai.com/docs/models
-                                                                     .messages( !options.get( "disableSendingChatGPTHistory" ) ? history : null )
-                                                                     .maxTokens( 256 )
-                                                                     .build( );
+        ChatCompletionRequest chatRequest = ChatCompletionRequest.builder( )
+                                                                 .model( OPENAI_MODEL ) // see https://platform.openai.com/docs/models
+                                                                  // if option enabled, send history
+                                                                 .messages( !options.get( "disableSendingChatGPTHistory" ) ? history : null )
+                                                                 .maxTokens( 256 )
+                                                                 .build( );
 
         ChatMessage response = service.createChatCompletion( chatRequest ).getChoices( )
                                                                           .get( 0 )
