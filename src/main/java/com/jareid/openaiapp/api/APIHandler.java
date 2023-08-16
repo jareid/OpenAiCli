@@ -1,4 +1,4 @@
-package com.jareid.openaicli.api;
+package com.jareid.openaiapp.api;
 
 import java.io.*;
 import java.time.LocalDateTime;
@@ -60,7 +60,7 @@ public class APIHandler {
     /**
      * A field to control the options of the ChatGPT controller.
      */
-    private Map<String, Boolean> options;
+    private final Map<String, Boolean> options;
 
     /**
      * The default constructor that initializes the OpenAiService and chat history.
@@ -94,22 +94,22 @@ public class APIHandler {
             history = new ArrayList<>();
 
             options = new HashMap<>();
-
-            Boolean disableOutputCodeToFile = (Boolean) properties.get( "openaicli.options.disableOutputCodeToFile" );
-            if ( disableOutputCodeToFile == null ) disableOutputCodeToFile = false;
-            options.put( "disableOutputCodeToFile", disableOutputCodeToFile );
-
-            Boolean disableLoggingChatGPTHistory = (Boolean) properties.get( "openaicli.options.disableLoggingChatGPTHistory" );
-            if ( disableLoggingChatGPTHistory == null ) disableLoggingChatGPTHistory = false;
-            options.put( "disableLoggingChatGPTHistory", disableLoggingChatGPTHistory );
-
-            Boolean disableSendingChatGPTHistory = (Boolean) properties.get( "openaicli.options.disableSendingChatGPTHistory" );
-            if ( disableSendingChatGPTHistory == null ) disableSendingChatGPTHistory = false;
-            options.put( "disableSendingChatGPTHistory", disableSendingChatGPTHistory );
+            options.put( "disableOutputCodeToFile", getBooleanProperty(properties, "openaicli.options.disableOutputCodeToFile") );
+            options.put( "disableLoggingChatGPTHistory", getBooleanProperty(properties, "openaicli.options.disableLoggingChatGPTHistory") );
+            options.put( "disableSendingChatGPTHistory", getBooleanProperty(properties, "openaicli.options.disableSendingChatGPTHistory") );
         } catch ( Exception startUpException ) {
             handleException(" couldn't start up the CLI", startUpException );
             throw new RuntimeException( "Failed to read from the history file. Exiting");
         }
+    }
+
+    private Boolean getBooleanProperty(Properties properties, String key) {
+        Object value = properties.get(key);
+        if (value instanceof String) {
+            return Boolean.parseBoolean((String) value);
+        }
+        // Return default value (false) if the property doesn't exist or isn't a string.
+        return false;
     }
 
     /**
@@ -121,7 +121,13 @@ public class APIHandler {
      * @throws IllegalArgumentException if the specified optionName does not exist in the options HashMap.
      */
     public void changeOption( String optionName ) {
-        options.put( optionName, !options.get( optionName ) );
+        if (options == null) {
+            throw new NullPointerException("Invalid option name: ''");
+        } else if ( !options.containsKey(optionName) ) {
+            throw new IllegalArgumentException("Invalid option name: " + optionName);
+        } else {
+            options.put( optionName, !options.get( optionName ) );
+        }
     }
 
     /**
@@ -342,11 +348,15 @@ public class APIHandler {
             clearHistoryToFile( );
         }
 
-        ChatMessage response = askGPT_GetResponse( userInput );
+        try {
+            ChatMessage response = askGPT_GetResponse(userInput);
 
-        if ( hasCode( response ) ) writeCodeToFile( response );
+            if (hasCode(response)) writeCodeToFile(response);
 
-        System.out.print( "ChatGPT: " + response.getContent( ) + System.lineSeparator( ) );
+            System.out.print("ChatGPT: " + response.getContent() + System.lineSeparator());
+        } catch( Exception exception ) {
+            handleException( "Error with the ChatGPT API occurred: " + exception.getMessage(), exception );
+        }
 
         return false;
     }
@@ -377,16 +387,10 @@ public class APIHandler {
      * TODO: decide if a thread could be useful, write now in such a simple project it is not useful.
      */
     public void start() {
-        // Creating a new thread
-        //Thread thread = new Thread(() -> {
         while (true) {
             if (!askGPT()) {
                 break;
             }
         }
-        //});
-
-        // Starting the thread
-        //thread.start();
     }
 }
