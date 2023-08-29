@@ -183,11 +183,12 @@ public class APIHandler {
     /**
      * A method to read chat history from a file.
      */
+    @SuppressWarnings("unchecked")
     private void readHistoryFromFile() throws RuntimeException {
         File historyFile = createNewHistoryFile();
         if ( historyFile.length() != 0 ) {
             try ( ObjectInputStream inputStream = new ObjectInputStream( new FileInputStream( historyFile ) ) ) {
-                history.add( ( Pair< ChatMessage > ) inputStream.readObject());
+                history.add( ( Pair< ChatMessage > ) inputStream.readObject() );
             } catch ( ClassNotFoundException | IOException readException ) {
                 handleException("couldn't read the history file", readException);
                 throw new RuntimeException("Failed to read from the history file. Exiting");
