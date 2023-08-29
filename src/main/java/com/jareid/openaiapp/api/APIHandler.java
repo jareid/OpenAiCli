@@ -1,12 +1,14 @@
 package com.jareid.openaiapp.api;
 
 import java.io.*;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.jareid.openaiapp.utils.Pair;
 import com.theokanning.openai.service.OpenAiService;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -33,7 +35,7 @@ import org.apache.commons.lang3.StringUtils;
  * @see ChatCompletionRequest
  * @see ChatMessage
  * @see ChatMessageRole
- * @version Last updated: 2023-07-24, Version 0.0.2
+ * @version Last updated: 2023-08-28, Version 0.0.4
  * @since 2023-07-08
  */
 public class APIHandler {
@@ -50,7 +52,7 @@ public class APIHandler {
     /**
      * A field containing the ChatGPT chat history.
      */
-    private List<ChatMessage> history;
+    private List< Pair< ChatMessage > > history;
 
     /**
      * The OpenAI API Service
@@ -60,7 +62,7 @@ public class APIHandler {
     /**
      * A field to control the options of the ChatGPT controller.
      */
-    private final Map<String, Boolean> options;
+    private final HashMap<String, Boolean> options;
 
     /**
      * The default constructor that initializes the OpenAiService and chat history.
@@ -89,9 +91,9 @@ public class APIHandler {
             OPENAICLI_CMD_HEADER = (String) properties.get( "openaicli.commandline.header" );
             if ( StringUtils.isEmpty( OPENAICLI_CMD_HEADER ) ) OPENAICLI_CMD_HEADER = "Open AI CLI --->";
 
-            service = new OpenAiService(apiKey);
+            service = new OpenAiService(apiKey, Duration.ofSeconds(60));
 
-            history = new ArrayList<>();
+            history = new ArrayList<>(250);
 
             options = new HashMap<>();
             options.put( "disableOutputCodeToFile", getBooleanProperty(properties, "openaicli.options.disableOutputCodeToFile") );
@@ -130,6 +132,41 @@ public class APIHandler {
         }
     }
 
+
+    /**
+     * Adds a new entry to the chat history and ensures the size of the history does not exceed the limit.
+     * If the size of the history reaches the limit (250 in this case), the earliest entry is removed before adding the new one.
+     *
+     * @param input   The input {@link ChatMessage} representing the message received.
+     * @param output  The output {@link ChatMessage} representing the response or reply.
+     */
+    private void addAndRotateHistory( ChatMessage input, ChatMessage output ) {
+        if (history.size() == 250) {
+            history.remove(0);
+        }
+        history.add( new Pair<>( input, output ) );
+    }
+
+    /**
+     * Returns the chat history entry associated with the specified ID.
+     *
+     * @param id The ID of the desired chat history entry. The valid range is from 0 to 249.
+     * @return A {@link Pair} containing the user's {@link ChatMessage} as the first element and ChatGPT's response as the second.
+     * @throws IllegalArgumentException if the provided ID is 250 or greater.
+     */
+    public Pair< ChatMessage > returnHistory(int id) {
+        if (id >= 250) {
+            throw new IllegalArgumentException("Chat History only contains a maximum of 125 user and 125 ChatGPT messages");
+        }
+        return history.get(id);
+    }
+
+    public List< ChatMessage > returnHistoryAsList() {
+        List< ChatMessage > list = new ArrayList<>();
+        for (Pair< ChatMessage > pair : history ) list.addAll( pair.convertToList() );
+        return list;
+    }
+
     /**
      * A method to handle exceptions and print stack trace.
      *
@@ -150,7 +187,7 @@ public class APIHandler {
         File historyFile = createNewHistoryFile();
         if ( historyFile.length() != 0 ) {
             try ( ObjectInputStream inputStream = new ObjectInputStream( new FileInputStream( historyFile ) ) ) {
-                history.add((ChatMessage) inputStream.readObject());
+                history.add( ( Pair< ChatMessage > ) inputStream.readObject());
             } catch ( ClassNotFoundException | IOException readException ) {
                 handleException("couldn't read the history file", readException);
                 throw new RuntimeException("Failed to read from the history file. Exiting");
@@ -363,13 +400,12 @@ public class APIHandler {
 
     public ChatMessage askGPT_GetResponse( String userInput ) {
         ChatMessage userMessage = new ChatMessage( ChatMessageRole.USER.value(), userInput );
-        if ( !options.get( "disableLoggingChatGPTHistory" ) ) history.add( userMessage );
 
         // Process the user's message with OpenAI
         ChatCompletionRequest chatRequest = ChatCompletionRequest.builder( )
                                                                  .model( OPENAI_MODEL ) // see https://platform.openai.com/docs/models
                                                                   // if option enabled, send history
-                                                                 .messages( !options.get( "disableSendingChatGPTHistory" ) ? history : null )
+                                                                 .messages( !options.get( "disableSendingChatGPTHistory" ) ? returnHistoryAsList() : null )
                                                                  .maxTokens( 256 )
                                                                  .build( );
 
@@ -377,7 +413,7 @@ public class APIHandler {
                                                                           .get( 0 )
                                                                           .getMessage( );
 
-        if ( !options.get( "disableLoggingChatGPTHistory" ) ) history.add( response );  // Add the last user message to history
+        if ( !options.get( "disableLoggingChatGPTHistory" ) ) addAndRotateHistory( userMessage, response );  // Add the last user message to history
 
         return response;
     }
@@ -387,6 +423,7 @@ public class APIHandler {
      * TODO: decide if a thread could be useful, write now in such a simple project it is not useful.
      */
     public void start() {
+        readHistoryFromFile();
         while (true) {
             if (!askGPT()) {
                 break;
